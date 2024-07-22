@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="wrapper">
+    <h1>To-Do List</h1>
+    <div class="content">
+        <p>Welcome, {{ username }}!</p>
+
+        <!-- Form to add new item -->
+        <form id="addItemForm">
+            <input type="text" id="itemName" name="itemName" placeholder="Enter a new item" required>
+            <button type="submit">Add Item</button>
+        </form>
+
+        <!-- Container to display items -->
+        <ul id="dataContainer"></ul>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        loadData();
+    });
+
+    function loadData() {
+        fetch('/data')
+            .then(response => response.json())
+            .then(data => {
+                let dataContainer = document.getElementById('dataContainer');
+                dataContainer.innerHTML = ''; // Clear previous content
+                data.forEach(item => {
+                    let itemElement = document.createElement('li');
+                    itemElement.innerHTML = `
+                        <input type="checkbox" ${item[2] ? 'checked' : ''} onclick="toggleItem(${item[0]})">
+                        <span class="${item[2] ? 'completed' : ''}">${item[1]}</span>
+                        <button onclick="deleteItem(${item[0]})">Delete</button>
+                    `;
+                    dataContainer.appendChild(itemElement);
+                });
+            });
+    }
+
+    document.getElementById('addItemForm').addEventListener('submit', function(event) {
+        event.preventDefault(); // Prevent form from submitting normally
+
+        let itemName = document.getElementById('itemName').value;
+
+        fetch('/add_item', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name: itemName })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Clear the input field
+                document.getElementById('itemName').value = '';
+
+                // Reload the item list
+                loadData();
+            } else {
+                alert('Failed to add item');
+            }
+        });
+    });
+
+    function toggleItem(itemId) {
+        fetch(`/toggle_item/${itemId}`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Reload the item list
+                loadData();
+            } else {
+                alert('Failed to toggle item');
+            }
+        });
+    }
+
+    function deleteItem(itemId) {
+        fetch(`/delete_item/${itemId}`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Reload the item list
+                loadData();
+            } else {
+                alert('Failed to delete item');
+            }
+        });
+    }
+</script>
+{% endblock %}
